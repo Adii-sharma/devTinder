@@ -1,0 +1,14 @@
+{
+  "name": "dev-back",
+  "version": "1.0.0",
+  "description": "tinder for developers",
+  "main": "app.js",
+  "scripts": {
+    "nodemon": "nodemon src/app.js"
+  },
+  "author": "Aditya Sharma",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
