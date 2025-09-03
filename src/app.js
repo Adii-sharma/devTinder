@@ -1,7 +1,8 @@
 const express = require("express");
 const connectDB = require("./config/database");
 const User = require("./models/user");
-const { Error } = require("mongoose");
+const { validateSignupCreds } = require("./utils/validation");
+const bcrypt = require("bcrypt");
 
 const app = express();
 
@@ -72,8 +73,8 @@ app.patch("/update-user/:userId", async (req, res) => {
       allowdUpdates.includes(k)
     );
 
-    if(userData?.skills?.length > 10){
-      return res.status(400).send({message: "Skills cannot be more than 10"})
+    if (userData?.skills?.length > 10) {
+      return res.status(400).send({ message: "Skills cannot be more than 10" });
     }
 
     if (!isUpdateAllowed) {
@@ -86,7 +87,6 @@ app.patch("/update-user/:userId", async (req, res) => {
 
     res.send("User updated Successfully");
   } catch (err) {
-    console.log("error--->", err);
     res.status(400).send({
       message: "Error occurred while updating user",
       error: err.message,
@@ -96,12 +96,49 @@ app.patch("/update-user/:userId", async (req, res) => {
 
 app.post("/signup", async (req, res) => {
   try {
-    const user = new User(req.body);
+    const { firstName, lastName, emailId, password } = req.body;
+
+    //validating credentials
+    validateSignupCreds(req);
+
+    //encrypting password
+    const encryptedPassword = await bcrypt.hash(password, 10);
+
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: encryptedPassword,
+    });
     await user.save();
 
     res.end("User added Successfully!");
   } catch (err) {
-    res.status(400).send("Error while saving user", err);
+    res.status(400).send(err.message);
+  }
+});
+
+//login
+app.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+
+    const user = await User.findOne({ emailId: emailId });
+
+    if (!user) {
+      throw new Error("Invalid credentials");
+    }
+
+    //compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (isPasswordValid) {
+      return res.status(200).send("Login successfull");
+    } else {
+      return res.status(400).send("Invalid credentials");
+    }
+  } catch (err) {
+    res.status(400).send(err.message);
   }
 });
 
